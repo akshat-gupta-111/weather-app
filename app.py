@@ -326,81 +326,130 @@ class ClimateDataService:
         }
 
     def generate_ai_response(self, user_question, location_info, weather_data):
-        """Generate AI response using Gemini with weather context"""
+        """Generate intelligent, crisp AI responses using Gemini with enhanced weather analysis"""
         try:
             # Get location name safely
             location_name = 'Unknown Location'
             if location_info:
                 location_name = location_info.get('name') or location_info.get('display_name', 'Unknown Location')
             
-            # Build comprehensive context based on available data
-            context = f"You are a helpful weather assistant analyzing data for {location_name}.\n\n"
+            # Create enhanced prompt with specific instructions for crisp responses
+            system_prompt = f"""You are a professional weather assistant with expertise in meteorology and air quality analysis. 
+
+LOCATION: {location_name}
+
+RESPONSE GUIDELINES:
+- Be conversational, friendly, and concise
+- Use emojis sparingly but effectively 
+- Provide actionable insights and advice
+- Give specific numbers when available
+- Keep responses under 150 words unless asking for detailed analysis
+- Focus on what matters most to the user
+- Don't ask for more data - work with what you have
+
+"""
+
+            # Process available weather data intelligently
+            if weather_data and isinstance(weather_data, dict):
+                data_summary = self._extract_weather_insights(weather_data, location_name)
+                system_prompt += f"CURRENT WEATHER DATA:\n{data_summary}\n\n"
+            else:
+                system_prompt += "No specific weather data available currently.\n\n"
+
+            # Add user question
+            system_prompt += f"USER MESSAGE: {user_question}\n\n"
             
-            # Handle different time periods
-            period = weather_data.get('period', 'unknown')
-            context += f"Data Period: {period}\n\n"
-            
-            if period == 'today' and 'current' in weather_data:
-                # Today's current conditions
-                current = weather_data['current']
-                context += "CURRENT CONDITIONS:\n"
-                context += f"- Temperature: {current.get('temperature', 'N/A')}°C\n"
-                context += f"- Humidity: {current.get('humidity', 'N/A')}%\n"
-                context += f"- Air Quality PM2.5: {current.get('pm25', 'N/A')} μg/m³\n"
-                context += f"- Air Quality PM10: {current.get('pm10', 'N/A')} μg/m³\n"
-                context += f"- Wind Speed: {current.get('windspeed', 'N/A')} km/h\n"
-                context += f"- Precipitation: {current.get('precipitation', 'N/A')} mm\n\n"
-                
-                # Today's hourly data
-                if 'hourly' in weather_data:
-                    hourly = weather_data['hourly']
-                    if hourly.get('temperature'):
-                        temp_data = hourly['temperature']
-                        context += f"TODAY'S HOURLY TRENDS:\n"
-                        context += f"- Temperature range: {min(temp_data):.1f}°C to {max(temp_data):.1f}°C\n"
-                        context += f"- Average temperature: {sum(temp_data)/len(temp_data):.1f}°C\n"
-                        
-                    if hourly.get('pm25'):
-                        pm25_data = hourly['pm25']
-                        context += f"- PM2.5 range: {min(pm25_data):.1f} to {max(pm25_data):.1f} μg/m³\n"
-                        context += f"- Average PM2.5: {sum(pm25_data)/len(pm25_data):.1f} μg/m³\n"
-                        
-            elif period in ['7days', '30days'] and 'daily' in weather_data:
-                # Historical daily data
-                daily = weather_data['daily']
-                context += f"{period.upper()} HISTORICAL DATA:\n"
-                
-                if daily.get('temp_max'):
-                    temp_max = daily['temp_max']
-                    temp_min = daily['temp_min']
-                    context += f"- Temperature range: {min(temp_min):.1f}°C to {max(temp_max):.1f}°C\n"
-                    context += f"- Average high: {sum(temp_max)/len(temp_max):.1f}°C\n"
-                    context += f"- Average low: {sum(temp_min)/len(temp_min):.1f}°C\n"
-                    
-                if daily.get('precipitation'):
-                    precip = daily['precipitation']
-                    total_precip = sum(precip)
-                    context += f"- Total precipitation: {total_precip:.1f} mm\n"
-                    context += f"- Average daily precipitation: {total_precip/len(precip):.1f} mm\n"
-                    
-                if daily.get('pm25'):
-                    pm25_data = daily['pm25']
-                    context += f"- PM2.5 range: {min(pm25_data):.1f} to {max(pm25_data):.1f} μg/m³\n"
-                    context += f"- Average PM2.5: {sum(pm25_data)/len(pm25_data):.1f} μg/m³\n"
-                    
-            # Add available data summary
-            context += f"\nAvailable data keys: {list(weather_data.keys())}\n"
-            
-            context += f"\nUSER QUESTION: {user_question}\n\n"
-            context += "Please provide a helpful, detailed response based on the weather data provided above. Include specific numbers and trends when available."
-            
+            # Add response instruction
+            system_prompt += """Respond naturally as a helpful weather expert. If the user just says "hey" or similar greetings, welcome them warmly and briefly mention what weather insights you can provide for their location."""
+
             # Generate response using Gemini
-            response = gemini_model.generate_content(context)
-            return response.text
+            response = gemini_model.generate_content(system_prompt)
+            return response.text.strip()
             
         except Exception as e:
             print(f"Error generating AI response: {e}")
-            return "I apologize, but I'm having trouble processing your request right now. Please try asking about the weather data again."
+            return f"Hey there! 👋 I'm your weather assistant for {location_name}. I can help you understand the current conditions, forecast trends, air quality, and provide weather-related advice. What would you like to know?"
+
+    def _extract_weather_insights(self, weather_data, location_name):
+        """Extract key insights from weather data for AI context"""
+        insights = []
+        
+        period = weather_data.get('period', 'unknown')
+        
+        # Current conditions (today)
+        if period == 'today' and 'current' in weather_data:
+            current = weather_data['current']
+            temp = current.get('temperature', 'N/A')
+            humidity = current.get('humidity', 'N/A')
+            pm25 = current.get('pm25', 'N/A')
+            wind = current.get('windspeed', 'N/A')
+            
+            insights.append(f"Current: {temp}°C, {humidity}% humidity, PM2.5: {pm25} μg/m³, Wind: {wind} km/h")
+            
+            # Air quality assessment
+            if pm25 != 'N/A':
+                try:
+                    pm25_val = float(pm25)
+                    if pm25_val <= 12:
+                        aqi_status = "Good air quality ✅"
+                    elif pm25_val <= 35:
+                        aqi_status = "Moderate air quality ⚠️"
+                    elif pm25_val <= 55:
+                        aqi_status = "Unhealthy for sensitive groups 🟡"
+                    else:
+                        aqi_status = "Unhealthy air quality 🔴"
+                    insights.append(aqi_status)
+                except:
+                    pass
+            
+            # Hourly trends
+            if 'hourly' in weather_data:
+                hourly = weather_data['hourly']
+                if hourly.get('temperature'):
+                    temps = hourly['temperature']
+                    temp_range = f"{min(temps):.1f}°C - {max(temps):.1f}°C"
+                    insights.append(f"Today's range: {temp_range}")
+                
+                if hourly.get('precipitation'):
+                    precip_total = sum(hourly['precipitation'])
+                    if precip_total > 0:
+                        insights.append(f"Rainfall today: {precip_total:.1f}mm")
+                    else:
+                        insights.append("No rain expected today")
+
+        # Multi-day data
+        elif period in ['7days', '30days']:
+            if 'daily' in weather_data:
+                daily = weather_data['daily']
+                time_label = "past week" if period == '7days' else "past month"
+                
+                if daily.get('temp_max') and daily.get('temp_min'):
+                    max_temps = daily['temp_max']
+                    min_temps = daily['temp_min']
+                    insights.append(f"{time_label.title()}: {min(min_temps):.1f}°C to {max(max_temps):.1f}°C")
+                
+                if daily.get('precipitation'):
+                    total_rain = sum(daily['precipitation'])
+                    insights.append(f"Total rainfall ({time_label}): {total_rain:.1f}mm")
+                
+                if daily.get('pm25'):
+                    pm25_data = daily['pm25']
+                    avg_pm25 = sum(pm25_data) / len(pm25_data)
+                    insights.append(f"Average PM2.5 ({time_label}): {avg_pm25:.1f} μg/m³")
+
+            # Weekly aggregated data
+            elif 'weekly' in weather_data:
+                weekly = weather_data['weekly']
+                if weekly.get('temp_max') and weekly.get('temp_min'):
+                    max_temps = weekly['temp_max']
+                    min_temps = weekly['temp_min']
+                    insights.append(f"Weekly temps: {min(min_temps):.1f}°C to {max(max_temps):.1f}°C")
+                
+                if weekly.get('precipitation'):
+                    total_rain = sum(weekly['precipitation'])
+                    insights.append(f"Monthly rainfall: {total_rain:.1f}mm")
+
+        return "\n".join(insights) if insights else f"Weather data available for {location_name} ({period})"
 
 # Initialize service
 climate_service = ClimateDataService()
@@ -445,23 +494,32 @@ def get_climate_data():
 def chat():
     try:
         data = request.json
-        message = data.get('message', '')
+        message = data.get('message', '').strip()
         weather_data = data.get('weather_data')
         location = data.get('location')
+        context = data.get('context', {})
         
-        print(f"Received chat request:")
-        print(f"Message: {message}")
+        print(f"Received enhanced chat request:")
+        print(f"Message: '{message}'")
         print(f"Weather data available: {bool(weather_data)}")
         print(f"Location: {location}")
+        print(f"Context: {context}")
         
-        if weather_data:
-            print(f"Weather data keys: {list(weather_data.keys())}")
-            print(f"Weather period: {weather_data.get('period', 'unknown')}")
+        # Handle empty or very short messages with friendly responses
+        if len(message) <= 3:
+            location_name = location.get('name', 'your location') if location else 'your location'
+            friendly_responses = [
+                f"Hello! 👋 I'm here to help you understand the weather data for {location_name}. What would you like to know?",
+                f"Hey there! 🌤️ I can tell you about current conditions, forecasts, air quality, and more for {location_name}. What interests you?",
+                f"Hi! ✨ Ready to explore the weather data for {location_name}? Ask me anything about temperature, air quality, or weather patterns!"
+            ]
+            import random
+            return jsonify({'response': random.choice(friendly_responses)})
         
-        # Generate AI response using the service
+        # Generate enhanced AI response
         ai_response = climate_service.generate_ai_response(message, location, weather_data)
         
-        print(f"AI response: {ai_response[:100]}...")  # First 100 chars
+        print(f"AI response length: {len(ai_response)} characters")
         
         return jsonify({
             'response': ai_response
@@ -469,10 +527,13 @@ def chat():
         
     except Exception as e:
         print(f"Error in chat endpoint: {str(e)}")
+        location_name = 'your area'
+        if request.json and request.json.get('location'):
+            location_name = request.json['location'].get('name', 'your area')
+        
         return jsonify({
-            'error': 'Failed to process chat request',
-            'response': 'Sorry, there was an error processing your request.'
-        }), 500
+            'response': f"I'm having a small technical hiccup! 🔧 But I'm still here to help you understand the weather for {location_name}. Try asking me again!"
+        }), 200  # Return 200 instead of 500 for better UX
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

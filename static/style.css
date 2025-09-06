@@ -146,23 +146,64 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 0 30px rgba(63, 135, 234, 0.3));
+}
+
+.globe-container:hover {
+    transform: scale(1.02);
+    filter: drop-shadow(0 0 40px rgba(63, 135, 234, 0.5));
 }
 
 #earth {
     width: 300px;
     height: 300px;
-    background: url('https://planetpixelemporium.com/download/download.php?8081/earthmap4k.jpg');
-    background-size: 600px 300px;
     border-radius: 50%;
     position: relative;
     cursor: grab;
-    box-shadow: 0 0 30px -5px rgba(63, 135, 234, 0.6);
+    box-shadow: 
+        0 0 30px -5px rgba(63, 135, 234, 0.6),
+        inset 0 0 50px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid rgba(255, 255, 255, 0.1);
 }
 
 #earth:active {
     cursor: grabbing;
 }
 
+#earth:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 0 40px -5px rgba(63, 135, 234, 0.8),
+        inset 0 0 50px rgba(0, 0, 0, 0.2);
+}
+
+#earth-map {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+/* Leaflet map specific styles for circular globe */
+#earth-map .leaflet-container {
+    border-radius: 50%;
+    background: transparent;
+}
+
+#earth-map .leaflet-control-container {
+    display: none; /* Hide default Leaflet controls for cleaner look */
+}
+
+/* Enhanced lighting effect */
 #earth::before {
     content: '';
     position: absolute;
@@ -172,11 +213,157 @@ body {
     height: 100%;
     border-radius: 50%;
     background: radial-gradient(
-        circle at 25% 25%,
-        rgba(255, 255, 255, 0.3) 0%,
-        rgba(255, 255, 255, 0.1) 40%,
-        rgba(0, 0, 0, 0.6) 90%
+        ellipse at 30% 30%,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(255, 255, 255, 0.08) 30%,
+        rgba(0, 0, 0, 0.1) 60%,
+        rgba(0, 0, 0, 0.4) 90%
     );
+    z-index: 3;
+    pointer-events: none;
+}
+
+/* Globe weather popup styling */
+.globe-popup .leaflet-popup-content-wrapper {
+    background: rgba(30, 41, 59, 0.95);
+    color: white;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.globe-popup .leaflet-popup-tip {
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.globe-weather-popup {
+    text-align: center;
+    min-width: 150px;
+    padding: 8px;
+}
+
+.globe-weather-popup h4 {
+    margin: 0 0 8px 0;
+    color: #3f87ea;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.globe-weather-popup .weather-summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 8px 0;
+}
+
+.globe-weather-popup .weather-emoji {
+    font-size: 24px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.globe-weather-popup .temp {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.globe-weather-popup p {
+    margin: 8px 0;
+    font-size: 12px;
+    color: #a0a6c1;
+    text-transform: capitalize;
+}
+
+.globe-weather-popup .weather-details {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.globe-weather-popup .weather-details small {
+    color: #9ca3af;
+    font-size: 11px;
+}
+
+/* Smooth scaling animation for zoom effect */
+.globe-container.zooming #earth {
+    animation: globeZoom 0.5s ease-in-out;
+}
+
+@keyframes globeZoom {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Location marker styles */
+.location-marker-tooltip {
+    background: rgba(255, 0, 0, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 6px !important;
+    color: white !important;
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+    font-weight: 500 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.location-marker-tooltip::before {
+    border-top-color: rgba(255, 0, 0, 0.9) !important;
+}
+
+/* Pulsing animation for location markers */
+.leaflet-marker-icon.pulsing-marker {
+    animation: locationPulse 2s infinite;
+}
+
+/* Specific animation for circle markers */
+.location-marker-pulse {
+    animation: circlePulse 2s infinite ease-in-out;
+}
+
+/* Better keyframes for circle markers - no sliding, just blinking */
+@keyframes circlePulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.15);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Fallback animation - simple blink without scaling */
+@keyframes locationPulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Enhanced circle marker styling */
+.leaflet-interactive {
+    cursor: pointer;
+}
+
+.leaflet-interactive:hover {
+    filter: brightness(1.2);
 }
 
 #tooltip {
