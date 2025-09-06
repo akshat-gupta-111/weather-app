@@ -140,9 +140,16 @@ class ClimateExplorer {
                 return;
             }
             
+            // ** FIXED COORDINATE CALCULATION **
             const mapPixelX = (bgPosX + clickX) % textureWidth;
-            const longitude = (mapPixelX / textureWidth) * 360 - 180;
-            const latitude = 90 - (clickY / textureHeight) * 180;
+            let longitude = (mapPixelX / textureWidth) * 360 - 180;
+            let latitude = 90 - (clickY / textureHeight) * 180;
+            
+            // Normalize longitude to -180 to 180 range
+            while (longitude > 180) longitude -= 360;
+            while (longitude < -180) longitude += 360;
+            
+            console.log(`Globe click: lat=${latitude.toFixed(2)}, lon=${longitude.toFixed(2)}`);
             
             this.selectLocationFromCoords(latitude, longitude, e.clientX, e.clientY);
         });
@@ -169,6 +176,7 @@ class ClimateExplorer {
             }).addTo(this.map);
             
             this.map.on('click', (e) => {
+                console.log(`Map click: lat=${e.latlng.lat.toFixed(2)}, lon=${e.latlng.lng.toFixed(2)}`);
                 this.selectLocationFromCoords(e.latlng.lat, e.latlng.lng);
             });
         }, 100);
@@ -258,12 +266,6 @@ class ClimateExplorer {
                 precip: 'Rainfall (Last 30 Days - Weekly)',
                 air: 'Air Quality (Last 30 Days - Weekly)',
                 heatmap: 'Air Quality Heatmap (30 Days)'
-            },
-            '1year': {
-                temp: 'Temperature (Last 12 Months)',
-                precip: 'Rainfall (Last 12 Months)',
-                air: 'Air Quality (Last 12 Months)',
-                heatmap: 'Air Quality Heatmap (12 Months)'
             }
         };
         
@@ -283,6 +285,10 @@ class ClimateExplorer {
                 `/api/climate-data?lat=${this.currentLocation.lat}&lon=${this.currentLocation.lon}&period=${this.currentPeriod}`
             );
             const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
             
             this.displayClimateData(data);
         } catch (error) {
@@ -321,9 +327,6 @@ class ClimateExplorer {
                 break;
             case '30days':
                 this.create30DayCharts(data);
-                break;
-            case '1year':
-                this.createYearlyCharts(data);
                 break;
         }
     }
@@ -389,7 +392,7 @@ class ClimateExplorer {
         });
         
         // Air Quality Heatmap
-        this.createAirQualityHeatmap(hourly.hours.map(h => `${h}:00`), hourly.pm25, 'heatmapChart');
+        this.createAirQualityHeatmap(hourly.hours.map(h => `${h}:00`), hourly.pm25);
     }
     
     create7DayCharts(data) {
@@ -457,7 +460,7 @@ class ClimateExplorer {
         });
         
         // Heatmap
-        this.createAirQualityHeatmap(daily.day_names, daily.pm25, 'heatmapChart');
+        this.createAirQualityHeatmap(daily.day_names, daily.pm25);
     }
     
     create30DayCharts(data) {
@@ -525,81 +528,19 @@ class ClimateExplorer {
         });
         
         // Heatmap
-        this.createAirQualityHeatmap(weekly.weeks, weekly.pm25, 'heatmapChart');
+        this.createAirQualityHeatmap(weekly.weeks, weekly.pm25);
     }
     
-    createYearlyCharts(data) {
-        const monthly = data.monthly;
+    createAirQualityHeatmap(labels, pm25Data) {
+        const ctx = document.getElementById('heatmapChart').getContext('2d');
         
-        // Temperature Chart
-        const tempCtx = document.getElementById('temperatureChart').getContext('2d');
-        this.charts.temperature = new Chart(tempCtx, {
-            type: 'line',
-            data: {
-                labels: monthly.months,
-                datasets: [
-                    {
-                        label: 'Max Temp (°C)',
-                        data: monthly.temp_max,
-                        borderColor: '#ef4444',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)'
-                    },
-                    {
-                        label: 'Min Temp (°C)',
-                        data: monthly.temp_min,
-                        borderColor: '#3f87ea',
-                        backgroundColor: 'rgba(63, 135, 234, 0.1)'
-                    }
-                ]
-            },
-            options: this.getChartOptions()
+        // Ensure PM2.5 data is valid numbers
+        const validPM25Data = pm25Data.map(value => {
+            const num = parseFloat(value);
+            return isNaN(num) ? 0 : num;
         });
         
-        // Precipitation Chart
-        const precipCtx = document.getElementById('precipitationChart').getContext('2d');
-        this.charts.precipitation = new Chart(precipCtx, {
-            type: 'bar',
-            data: {
-                labels: monthly.months,
-                datasets: [{
-                    label: 'Rainfall (mm)',
-                    data: monthly.precipitation,
-                    backgroundColor: '#22c55e'
-                }]
-            },
-            options: this.getChartOptions()
-        });
-        
-        // Air Quality Chart
-        const airCtx = document.getElementById('airQualityChart').getContext('2d');
-        this.charts.airQuality = new Chart(airCtx, {
-            type: 'line',
-            data: {
-                labels: monthly.months,
-                datasets: [
-                    {
-                        label: 'PM2.5',
-                        data: monthly.pm25,
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)'
-                    },
-                    {
-                        label: 'PM10',
-                        data: monthly.pm10,
-                        borderColor: '#ef4444',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)'
-                    }
-                ]
-            },
-            options: this.getChartOptions()
-        });
-        
-        // Heatmap
-        this.createAirQualityHeatmap(monthly.months, monthly.pm25, 'heatmapChart');
-    }
-    
-    createAirQualityHeatmap(labels, pm25Data, canvasId) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
+        console.log('PM2.5 Data for heatmap:', validPM25Data); // Debug log
         
         // Create color-coded background colors based on AQI levels
         const getAQIColor = (pm25) => {
@@ -610,8 +551,10 @@ class ClimateExplorer {
             return 'rgba(147, 51, 234, 0.8)'; // Hazardous - Purple
         };
         
-        const backgroundColors = pm25Data.map(pm25 => getAQIColor(pm25));
-        const borderColors = pm25Data.map(pm25 => getAQIColor(pm25).replace('0.8', '1'));
+        const backgroundColors = validPM25Data.map(pm25 => getAQIColor(pm25));
+        const borderColors = validPM25Data.map(pm25 => getAQIColor(pm25).replace('0.8', '1'));
+        
+        console.log('Background colors:', backgroundColors); // Debug log
         
         this.charts.heatmap = new Chart(ctx, {
             type: 'bar',
@@ -619,7 +562,7 @@ class ClimateExplorer {
                 labels: labels,
                 datasets: [{
                     label: 'PM2.5 Air Quality Index',
-                    data: pm25Data,
+                    data: validPM25Data,
                     backgroundColor: backgroundColors,
                     borderColor: borderColors,
                     borderWidth: 2,
@@ -667,23 +610,19 @@ class ClimateExplorer {
             }
         });
         
-        // Add custom legend below heatmap
-        this.addHeatmapLegend(canvasId);
+        // Add properly formatted legend
+        this.addHeatmapLegend();
     }
     
-    addHeatmapLegend(canvasId) {
-        const legendContainer = document.querySelector(`#${canvasId}`).parentNode;
+    addHeatmapLegend() {
+        const legendContainer = document.getElementById('heatmapLegend');
         
-        // Remove existing legend
-        const existingLegend = legendContainer.querySelector('.air-quality-legend');
-        if (existingLegend) {
-            existingLegend.remove();
+        if (!legendContainer) {
+            console.error('Heatmap legend container not found!');
+            return;
         }
         
-        // Create new legend
-        const legend = document.createElement('div');
-        legend.className = 'air-quality-legend';
-        legend.innerHTML = `
+        legendContainer.innerHTML = `
             <div class="legend-item">
                 <div class="legend-color" style="background-color: rgba(34, 197, 94, 0.8);"></div>
                 <span>Good (0-12)</span>
@@ -694,7 +633,7 @@ class ClimateExplorer {
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background-color: rgba(249, 115, 22, 0.8);"></div>
-                <span>Unhealthy (36-55)</span>
+                <span>Unhealthy for Sensitive (36-55)</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background-color: rgba(239, 68, 68, 0.8);"></div>
@@ -706,7 +645,7 @@ class ClimateExplorer {
             </div>
         `;
         
-        legendContainer.appendChild(legend);
+        console.log('Heatmap legend added successfully'); // Debug log
     }
     
     getChartOptions() {
