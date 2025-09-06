@@ -13,49 +13,36 @@
     <header class="header">
         <div class="container">
             <h1 class="logo">🌍 Climate Explorer</h1>
-            <div class="header-actions">
-                <button id="refreshBtn" class="btn btn-secondary">
-                    <span class="refresh-icon">↻</span> Refresh
-                </button>
-                <button id="exportBtn" class="btn btn-primary">📊 Export</button>
-            </div>
         </div>
     </header>
 
     <main class="main-content">
         <div class="container">
             <!-- Location Selection Panel -->
-            <section class="location-panel">
-                <h2>Select Location</h2>
-                <div class="location-methods">
-                    <div class="method-tabs">
-                        <button class="tab-btn active" data-tab="city">🏙️ Search City</button>
-                        <button class="tab-btn" data-tab="map">🗺️ Map</button>
-                        <button class="tab-btn" data-tab="globe">🌍 Globe</button>
-                    </div>
-                    
-                    <!-- City Search -->
-                    <div class="tab-content active" id="city-tab">
+            <section class="location-selection">
+                <div class="search-globe-container">
+                    <!-- Search Bar -->
+                    <div class="search-section">
                         <div class="search-container">
-                            <input type="text" id="citySearch" placeholder="Search for a city..." autocomplete="off">
-                            <div id="cityResults" class="search-results"></div>
+                            <input type="text" id="citySearch" placeholder="🔍 Search for a city..." autocomplete="off">
+                            <div id="searchResults" class="search-results"></div>
                         </div>
                     </div>
                     
-                    <!-- Map Selection -->
-                    <div class="tab-content" id="map-tab">
-                        <div id="map" class="map-container"></div>
-                        <p class="help-text">Click on the map to select a location</p>
-                    </div>
-                    
-                    <!-- Globe Selection -->
-                    <div class="tab-content" id="globe-tab">
+                    <!-- Globe -->
+                    <div class="globe-section">
                         <div id="earth-container" class="globe-container">
                             <div id="earth"></div>
                             <div id="tooltip"></div>
                         </div>
-                        <p class="help-text">Drag to rotate, click to select location</p>
+                        <p class="help-text">Drag to rotate, click to select</p>
                     </div>
+                </div>
+                
+                <!-- Map -->
+                <div class="map-section">
+                    <div id="map" class="map-container"></div>
+                    <p class="help-text">Click on the map to select a location</p>
                 </div>
             </section>
 
@@ -65,23 +52,24 @@
                 <p>Loading climate data...</p>
             </div>
 
-            <!-- Error State -->
-            <div id="errorState" class="error-state hidden">
-                <div class="error-icon">⚠️</div>
-                <h3>Unable to load data</h3>
-                <p id="errorMessage">Please try again or select a different location.</p>
-                <button id="retryBtn" class="btn btn-primary">Try Again</button>
-            </div>
-
             <!-- Dashboard -->
             <div id="dashboard" class="dashboard hidden">
-                <!-- Current Conditions -->
-                <section class="current-conditions">
-                    <div class="condition-header">
-                        <h2 id="locationName">Current Conditions</h2>
-                        <span id="lastUpdated" class="timestamp"></span>
-                    </div>
-                    
+                <!-- Location Info -->
+                <div class="location-info">
+                    <h2 id="locationName">Select a location to view climate data</h2>
+                    <span id="coordinates" class="coordinates"></span>
+                </div>
+
+                <!-- Time Period Navigation -->
+                <nav class="time-nav">
+                    <button class="time-btn active" data-period="today">Today</button>
+                    <button class="time-btn" data-period="7days">Last 7 Days</button>
+                    <button class="time-btn" data-period="30days">Last 30 Days</button>
+                    <button class="time-btn" data-period="1year">Last 1 Year</button>
+                </nav>
+
+                <!-- Current Conditions (Only for Today) -->
+                <div id="currentConditions" class="current-conditions">
                     <div class="current-grid">
                         <div class="current-card temperature">
                             <div class="card-icon">🌡️</div>
@@ -104,7 +92,7 @@
                         <div class="current-card air-quality">
                             <div class="card-icon">🌬️</div>
                             <div class="card-content">
-                                <span class="card-value" id="currentAQI">--</span>
+                                <span class="card-value" id="currentPM25">--</span>
                                 <span class="card-unit">μg/m³</span>
                                 <span class="card-label">PM2.5</span>
                             </div>
@@ -119,50 +107,45 @@
                             </div>
                         </div>
                     </div>
-                </section>
-
-                <!-- Anomaly Alerts -->
-                <section id="anomalySection" class="anomaly-section hidden">
-                    <h3>⚠️ Weather Alerts</h3>
-                    <div id="anomalyList" class="anomaly-list"></div>
-                </section>
-
-                <!-- AI Summary -->
-                <section class="ai-summary">
-                    <h3>🤖 AI Climate Insights</h3>
-                    <div id="aiSummary" class="summary-content">
-                        Select a location to get AI-powered climate insights...
-                    </div>
-                </section>
+                </div>
 
                 <!-- Charts Section -->
-                <section class="charts-section">
-                    <div class="chart-tabs">
-                        <button class="chart-tab-btn active" data-chart="temperature">Temperature</button>
-                        <button class="chart-tab-btn" data-chart="precipitation">Precipitation</button>
-                        <button class="chart-tab-btn" data-chart="air-quality">Air Quality</button>
-                        <button class="chart-tab-btn" data-chart="forecast">7-Day Forecast</button>
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 id="tempChartTitle">Temperature</h3>
+                        <div class="chart-container">
+                            <canvas id="temperatureChart"></canvas>
+                        </div>
                     </div>
                     
-                    <div class="chart-container">
-                        <canvas id="mainChart" class="chart-canvas"></canvas>
+                    <div class="chart-card">
+                        <h3 id="precipChartTitle">Rainfall</h3>
+                        <div class="chart-container">
+                            <canvas id="precipitationChart"></canvas>
+                        </div>
                     </div>
-                </section>
-
-                <!-- Weather Forecast Cards -->
-                <section class="forecast-section">
-                    <h3>7-Day Weather Forecast</h3>
-                    <div id="forecastCards" class="forecast-grid">
-                        <!-- Forecast cards will be generated here -->
+                    
+                    <div class="chart-card">
+                        <h3 id="airChartTitle">Air Quality</h3>
+                        <div class="chart-container">
+                            <canvas id="airQualityChart"></canvas>
+                        </div>
                     </div>
-                </section>
+                    
+                    <div class="chart-card full-width">
+                        <h3 id="heatmapTitle">Air Quality Heatmap</h3>
+                        <div class="heatmap-container">
+                            <canvas id="heatmapChart"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
 
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2025 Climate Data Visual Explorer | Data from Open-Meteo & OpenWeather</p>
+            <p>&copy; 2025 Climate Data Visual Explorer | Data from Open-Meteo & OpenWeatherMap</p>
         </div>
     </footer>
 
