@@ -4,6 +4,7 @@ class ClimateExplorer {
         this.currentLocation = null;
         this.currentPeriod = 'today';
         this.charts = {};
+        this.weatherData = null; // Store current weather data for chatbot
         
         this.initializeApp();
     }
@@ -39,6 +40,9 @@ class ClimateExplorer {
                 document.getElementById('searchResults').classList.remove('show');
             }
         });
+
+        // Chatbot functionality
+        this.setupChatbot();
     }
     
     async searchCities(query) {
@@ -299,6 +303,11 @@ class ClimateExplorer {
     }
     
     displayClimateData(data) {
+        // Store data for chatbot access
+        this.weatherData = data;
+        console.log('Weather data stored for chatbot:', this.weatherData);
+        console.log('Current location:', this.currentLocation);
+        
         // Update current conditions (if today)
         if (data.period === 'today' && data.current) {
             document.getElementById('currentTemp').textContent = data.current.temperature;
@@ -309,6 +318,9 @@ class ClimateExplorer {
         
         // Create charts based on period
         this.createCharts(data);
+        
+        // Update chatbot with new data
+        this.updateChatbotContext();
     }
     
     createCharts(data) {
@@ -707,9 +719,405 @@ class ClimateExplorer {
     hideLoading() {
         document.getElementById('loadingState').classList.add('hidden');
     }
+
+    // Chatbot functionality
+    setupChatbot() {
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendChatBtn');
+
+        // Send message on button click
+        sendBtn.addEventListener('click', () => {
+            this.sendChatMessage();
+        });
+
+        // Send message on Enter key
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendChatMessage();
+            }
+        });
+    }
+
+    async sendChatMessage() {
+        const chatInput = document.getElementById('chatInput');
+        const message = chatInput.value.trim();
+        
+        if (!message) return;
+
+        // Add user message to chat
+        this.addMessageToChat(message, 'user');
+        
+        // Clear input
+        chatInput.value = '';
+
+        // Show typing indicator
+        this.showTypingIndicator();
+
+        // Send to Gemini AI and wait for response
+        try {
+            const aiResponse = await this.sendToGeminiAI(message);
+            
+            // Remove typing indicator
+            this.hideTypingIndicator();
+            
+            // Add AI response to chat
+            this.addMessageToChat(aiResponse, 'bot');
+        } catch (error) {
+            console.error('Error getting AI response:', error);
+            this.hideTypingIndicator();
+            this.addMessageToChat('Sorry, I encountered an error processing your request.', 'bot');
+        }
+    }
+
+    async sendToGeminiAI(message) {
+        console.log('Sending to Gemini AI:', message);
+        console.log('Weather data available:', !!this.weatherData);
+        console.log('Current location available:', !!this.currentLocation);
+        
+        const payload = {
+            message: message,
+            weather_data: this.weatherData || null,
+            location: this.currentLocation || null
+        };
+        
+        console.log('Payload being sent:', payload);
+        
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Response from server:', data);
+            return data.response || 'Sorry, I could not process your request.';
+        } catch (error) {
+            console.error('Error communicating with chatbot:', error);
+            return 'Sorry, there was an error processing your request.';
+        }
+    }
+
+    addMessageToChat(message, sender) {
+        const chatMessages = document.getElementById('chatMessages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${sender}-message`;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.textContent = message;
+        
+        messageDiv.appendChild(contentDiv);
+        chatMessages.appendChild(messageDiv);
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    showTypingIndicator() {
+        const chatMessages = document.getElementById('chatMessages');
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'chat-message bot-message typing-indicator';
+        typingDiv.id = 'typingIndicator';
+        
+        typingDiv.innerHTML = `
+            <div class="message-content">
+                <span>Climate Assistant is typing</span>
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        `;
+        
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    hideTypingIndicator() {
+        const typingIndicator = document.getElementById('typingIndicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+
+    processUserQuestion(question) {
+        const lowerQuestion = question.toLowerCase();
+        const currentData = this.weatherData;
+        
+        if (!currentData) {
+            return "🤔 I don't have any climate data to analyze yet. Please select a location first by searching for a city or clicking on the globe/map!";
+        }
+
+        // Location-based questions
+        if (lowerQuestion.includes('location') || lowerQuestion.includes('where')) {
+            return `📍 You're currently viewing data for ${this.currentLocation.name}. The coordinates are ${this.currentLocation.lat.toFixed(2)}, ${this.currentLocation.lon.toFixed(2)}.`;
+        }
+
+        // Current conditions questions
+        if (lowerQuestion.includes('current') || lowerQuestion.includes('now') || lowerQuestion.includes('today')) {
+            if (currentData.current) {
+                const current = currentData.current;
+                return `🌡️ **Current Conditions:**\n• Temperature: ${current.temperature}°C\n• Humidity: ${current.humidity}%\n• PM2.5: ${current.pm25} μg/m³ ${this.getAirQualityDescription(current.pm25)}\n• Wind Speed: ${current.windspeed} km/h\n\n${this.getWeatherAdvice(current)}`;
+            }
+        }
+
+        // Temperature questions
+        if (lowerQuestion.includes('temperature') || lowerQuestion.includes('temp') || lowerQuestion.includes('hot') || lowerQuestion.includes('cold')) {
+            return this.answerTemperatureQuestion(currentData, lowerQuestion);
+        }
+
+        // Air quality questions
+        if (lowerQuestion.includes('air') || lowerQuestion.includes('pollution') || lowerQuestion.includes('pm2.5') || lowerQuestion.includes('pm10')) {
+            return this.answerAirQualityQuestion(currentData, lowerQuestion);
+        }
+
+        // Weather/precipitation questions
+        if (lowerQuestion.includes('rain') || lowerQuestion.includes('weather') || lowerQuestion.includes('precipitation') || lowerQuestion.includes('wet')) {
+            return this.answerWeatherQuestion(currentData, lowerQuestion);
+        }
+
+        // Wind questions
+        if (lowerQuestion.includes('wind') || lowerQuestion.includes('windy')) {
+            return this.answerWindQuestion(currentData, lowerQuestion);
+        }
+
+        // Trend questions
+        if (lowerQuestion.includes('trend') || lowerQuestion.includes('pattern') || lowerQuestion.includes('change')) {
+            return this.answerTrendQuestion(currentData, lowerQuestion);
+        }
+
+        // Health questions
+        if (lowerQuestion.includes('health') || lowerQuestion.includes('safe') || lowerQuestion.includes('exercise') || lowerQuestion.includes('outdoor')) {
+            return this.answerHealthQuestion(currentData, lowerQuestion);
+        }
+
+        // Best/worst questions
+        if (lowerQuestion.includes('best') || lowerQuestion.includes('worst') || lowerQuestion.includes('highest') || lowerQuestion.includes('lowest')) {
+            return this.answerBestWorstQuestion(currentData, lowerQuestion);
+        }
+
+        // Default response with suggestions
+        return `🤖 I can help you understand the climate data! Try asking me about:
+        
+📊 **Data Questions:**
+• "What's the current temperature?"
+• "How's the air quality today?"
+• "Is it going to rain?"
+• "What are the temperature trends?"
+
+🏥 **Health & Safety:**
+• "Is it safe to exercise outside?"
+• "When is the best air quality today?"
+• "Should I wear a mask today?"
+
+📈 **Analysis:**
+• "What's the highest temperature this week?"
+• "How does today compare to yesterday?"
+• "What time has the cleanest air?"
+
+Just ask me anything about your weather dashboard! 🌤️`;
+    }
+
+    answerTemperatureQuestion(data, question) {
+        if (data.period === 'today' && data.current) {
+            const current = data.current;
+            const hourly = data.hourly;
+            const maxTemp = Math.max(...hourly.temperature);
+            const minTemp = Math.min(...hourly.temperature);
+            const maxHour = hourly.hours[hourly.temperature.indexOf(maxTemp)];
+            const minHour = hourly.hours[hourly.temperature.indexOf(minTemp)];
+
+            return `🌡️ **Temperature Analysis:**\n• Current: ${current.temperature}°C\n• Today's Range: ${minTemp}°C to ${maxTemp}°C\n• Warmest: ${maxHour}:00 (${maxTemp}°C)\n• Coolest: ${minHour}:00 (${minTemp}°C)\n\n${this.getTemperatureAdvice(current.temperature, maxTemp, minTemp)}`;
+        } else if (data.period === '7days') {
+            const daily = data.daily;
+            const maxTemp = Math.max(...daily.temp_max);
+            const minTemp = Math.min(...daily.temp_min);
+            return `🌡️ **7-Day Temperature:**\n• Highest: ${maxTemp}°C\n• Lowest: ${minTemp}°C\n• Average High: ${(daily.temp_max.reduce((a,b) => a+b) / daily.temp_max.length).toFixed(1)}°C\n• Average Low: ${(daily.temp_min.reduce((a,b) => a+b) / daily.temp_min.length).toFixed(1)}°C`;
+        }
+        return "I can analyze temperature data once you select a location! 🌡️";
+    }
+
+    answerAirQualityQuestion(data, question) {
+        if (data.current) {
+            const pm25 = data.current.pm25;
+            const description = this.getAirQualityDescription(pm25);
+            const advice = this.getAirQualityAdvice(pm25);
+
+            if (data.hourly) {
+                const avgPM25 = (data.hourly.pm25.reduce((a,b) => a+b) / data.hourly.pm25.length).toFixed(1);
+                const maxPM25 = Math.max(...data.hourly.pm25);
+                const minPM25 = Math.min(...data.hourly.pm25);
+
+                return `🌬️ **Air Quality Analysis:**\n• Current PM2.5: ${pm25} μg/m³ (${description})\n• Today's Range: ${minPM25} - ${maxPM25} μg/m³\n• Daily Average: ${avgPM25} μg/m³\n\n💡 **Health Advice:** ${advice}`;
+            }
+            return `🌬️ **Current Air Quality:**\n• PM2.5: ${pm25} μg/m³ (${description})\n\n💡 ${advice}`;
+        }
+        return "I need location data to analyze air quality! Please select a location first. 🌬️";
+    }
+
+    answerWeatherQuestion(data, question) {
+        if (data.hourly) {
+            const totalRain = data.hourly.precipitation.reduce((a,b) => a+b, 0);
+            const maxRain = Math.max(...data.hourly.precipitation);
+            const rainHours = data.hourly.precipitation.filter(p => p > 0).length;
+
+            if (totalRain > 0) {
+                return `🌧️ **Rainfall Today:**\n• Total: ${totalRain.toFixed(1)}mm\n• Peak: ${maxRain.toFixed(1)}mm/hour\n• Rainy hours: ${rainHours}/24\n\n☂️ You might want to carry an umbrella!`;
+            } else {
+                return `☀️ **Weather Today:**\n• No rain expected today!\n• Perfect weather for outdoor activities\n• Don't forget sunscreen! ☀️`;
+            }
+        }
+        return "Select a location to get weather information! 🌤️";
+    }
+
+    answerWindQuestion(data, question) {
+        if (data.current && data.hourly) {
+            const currentWind = data.current.windspeed;
+            const maxWind = Math.max(...data.hourly.windspeed);
+            const avgWind = (data.hourly.windspeed.reduce((a,b) => a+b) / data.hourly.windspeed.length).toFixed(1);
+
+            return `💨 **Wind Analysis:**\n• Current: ${currentWind} km/h\n• Today's Peak: ${maxWind} km/h\n• Average: ${avgWind} km/h\n\n${this.getWindAdvice(currentWind, maxWind)}`;
+        }
+        return "Wind data will be available after selecting a location! 💨";
+    }
+
+    answerTrendQuestion(data, question) {
+        if (data.period === '7days' && data.daily) {
+            const temps = data.daily.temp_max;
+            const isWarming = temps[temps.length-1] > temps[0];
+            const tempChange = (temps[temps.length-1] - temps[0]).toFixed(1);
+
+            return `📈 **7-Day Trends:**\n• Temperature trend: ${isWarming ? '📈 Warming' : '📉 Cooling'} by ${Math.abs(tempChange)}°C\n• Air quality varies throughout the week\n• Check the charts for detailed patterns!`;
+        }
+        return "Switch to 7-day or 30-day view to see trends! 📊";
+    }
+
+    answerHealthQuestion(data, question) {
+        if (data.current) {
+            const temp = data.current.temperature;
+            const pm25 = data.current.pm25;
+            const wind = data.current.windspeed;
+
+            let advice = "🏥 **Health Assessment:**\n";
+            
+            // Temperature health advice
+            if (temp < 5) advice += "❄️ Very cold - dress warmly, limit outdoor exposure\n";
+            else if (temp < 15) advice += "🧥 Cool - wear layers for outdoor activities\n";
+            else if (temp < 25) advice += "👕 Comfortable for most outdoor activities\n";
+            else if (temp < 35) advice += "🌡️ Warm - stay hydrated, seek shade\n";
+            else advice += "🔥 Very hot - limit outdoor activities, stay cool\n";
+
+            // Air quality health advice
+            if (pm25 <= 12) advice += "✅ Good air quality - safe for all outdoor activities\n";
+            else if (pm25 <= 35) advice += "⚠️ Moderate air - sensitive people should limit prolonged outdoor exertion\n";
+            else if (pm25 <= 55) advice += "🚨 Unhealthy for sensitive groups - wear masks if sensitive\n";
+            else advice += "☣️ Unhealthy air - everyone should limit outdoor activities\n";
+
+            return advice + `\n💡 **Recommendation:** ${this.getOverallHealthAdvice(temp, pm25)}`;
+        }
+        return "I need current data to provide health advice! Select a location first. 🏥";
+    }
+
+    answerBestWorstQuestion(data, question) {
+        if (data.hourly) {
+            const temps = data.hourly.temperature;
+            const pm25s = data.hourly.pm25;
+            const hours = data.hourly.hours;
+
+            const bestTempIdx = temps.findIndex(t => t >= 20 && t <= 25) || 0;
+            const bestAirIdx = pm25s.indexOf(Math.min(...pm25s));
+            const worstAirIdx = pm25s.indexOf(Math.max(...pm25s));
+
+            return `🏆 **Best & Worst Times Today:**
+
+✅ **Best Times:**
+• Comfortable temperature: ${hours[bestTempIdx]}:00 (${temps[bestTempIdx]}°C)
+• Cleanest air: ${hours[bestAirIdx]}:00 (${pm25s[bestAirIdx]} μg/m³)
+
+❌ **Worst Times:**
+• Poorest air quality: ${hours[worstAirIdx]}:00 (${pm25s[worstAirIdx]} μg/m³)
+
+💡 **Best overall time for outdoor activities:** ${hours[bestAirIdx]}:00`;
+        }
+        return "Select a location to get best/worst times analysis! ⏰";
+    }
+
+    getAirQualityDescription(pm25) {
+        if (pm25 <= 12) return "Good 😊";
+        if (pm25 <= 35) return "Moderate 😐";
+        if (pm25 <= 55) return "Unhealthy for Sensitive 😷";
+        if (pm25 <= 150) return "Unhealthy 🚨";
+        return "Hazardous ☣️";
+    }
+
+    getAirQualityAdvice(pm25) {
+        if (pm25 <= 12) return "Perfect for all outdoor activities!";
+        if (pm25 <= 35) return "Generally safe, sensitive people should monitor symptoms.";
+        if (pm25 <= 55) return "Sensitive groups should reduce prolonged outdoor exertion.";
+        if (pm25 <= 150) return "Everyone should limit outdoor activities and consider wearing masks.";
+        return "Avoid outdoor activities. Stay indoors with air purification if possible.";
+    }
+
+    getTemperatureAdvice(current, max, min) {
+        if (max > 30) return "🔥 Hot day ahead! Stay hydrated and seek shade during peak hours.";
+        if (min < 5) return "❄️ Cold conditions. Dress warmly and protect exposed skin.";
+        if (max - min > 15) return "🌡️ Large temperature swing today. Dress in layers!";
+        return "🌤️ Pleasant temperatures expected. Great day for outdoor activities!";
+    }
+
+    getWindAdvice(current, max) {
+        if (max > 25) return "💨 Windy conditions expected. Secure loose items outdoors.";
+        if (current < 5) return "🍃 Light winds. Great for outdoor sports and activities.";
+        return "💨 Moderate winds. Generally pleasant conditions.";
+    }
+
+    getWeatherAdvice(current) {
+        const temp = current.temperature;
+        const pm25 = current.pm25;
+        
+        if (temp > 30 && pm25 > 35) return "🚨 Hot and polluted - stay indoors during midday.";
+        if (temp < 10 && pm25 > 35) return "❄️😷 Cold and polluted - limit outdoor time, dress warmly.";
+        if (pm25 <= 12 && temp >= 18 && temp <= 28) return "✨ Perfect conditions for outdoor activities!";
+        return "Check individual factors for detailed recommendations.";
+    }
+
+    getOverallHealthAdvice(temp, pm25) {
+        if (pm25 <= 12 && temp >= 15 && temp <= 30) return "Perfect for all outdoor activities! 🌟";
+        if (pm25 > 55) return "Stay indoors due to poor air quality 🏠";
+        if (temp > 35) return "Avoid midday activities due to heat 🌡️";
+        if (temp < 0) return "Dress warmly and limit exposure ❄️";
+        return "Moderate conditions - listen to your body 👂";
+    }
+    
+    updateChatbotContext() {
+        // This method is called whenever new weather data is loaded
+        // The chatbot can now access this.weatherData and this.currentLocation
+        console.log('Chatbot context updated with new weather data');
+        
+        // Optionally add a system message to chat
+        if (this.weatherData && this.currentLocation) {
+            const chatMessages = document.getElementById('chatMessages');
+            if (chatMessages && chatMessages.children.length === 0) {
+                // Only add welcome message if chat is empty
+                this.addMessageToChat(
+                    `👋 Hi! I can help you understand the climate data for ${this.currentLocation.name}. Ask me about current conditions, temperature trends, air quality, or weather patterns!`, 
+                    'bot'
+                );
+            }
+        }
+    }
 }
 
 // Initialize the application when DOM is loaded
+let climateExplorer;
 document.addEventListener('DOMContentLoaded', () => {
-    new ClimateExplorer();
+    climateExplorer = new ClimateExplorer();
 });
