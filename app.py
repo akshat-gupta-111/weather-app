@@ -283,83 +283,33 @@ class WeatherService:
     def generate_ai_summary(self, data, location_name):
         """Generate AI summary using Gemini"""
         try:
-            # Get additional context for better health recommendations
-            temp = data['current']['temperature']
-            humidity = data['current']['humidity']
-            pm2_5 = data['current_air']['pm2_5']
-            windspeed = data['current']['windspeed']
-            
-            # Determine air quality level
-            if pm2_5 <= 12:
-                aqi_level = "Good"
-            elif pm2_5 <= 35:
-                aqi_level = "Moderate"
-            elif pm2_5 <= 55:
-                aqi_level = "Unhealthy for Sensitive Groups"
-            elif pm2_5 <= 150:
-                aqi_level = "Unhealthy"
-            else:
-                aqi_level = "Hazardous"
-            
             prompt = f"""
-            Analyze this comprehensive climate data for {location_name} and provide detailed health and safety guidance:
+            Analyze this climate data for {location_name} and provide a concise, beginner-friendly summary:
             
             Current Conditions:
-            - Temperature: {temp}°C
-            - Humidity: {humidity}%
-            - Air Quality PM2.5: {pm2_5} μg/m³ ({aqi_level})
-            - Wind Speed: {windspeed} km/h
+            - Temperature: {data['current']['temperature']}°C
+            - Humidity: {data['current']['humidity']}%
+            - Air Quality PM2.5: {data['current_air']['pm2_5']} μg/m³
             
             7-day Forecast:
             - Max temps: {data['daily']['temp_max'][:7]}
             - Min temps: {data['daily']['temp_min'][:7]}
             - Precipitation: {data['daily']['precipitation'][:7]}
-            - Precipitation probability: {data['daily']['precipitation_prob'][:7]}%
             
-            Please provide a comprehensive analysis with:
+            Please provide:
+            1. Current weather overview (2-3 sentences)
+            2. Key patterns or trends (2-3 sentences)
+            3. Health recommendations based on air quality (1-2 sentences)
+            4. What to expect this week (2-3 sentences)
             
-            1. **Current Weather Summary** (2-3 sentences):
-               - Brief overview of current conditions
-               - How it feels and what to expect today
-            
-            2. **Health & Safety Recommendations** (3-4 detailed points):
-               - Specific advice based on temperature (heat/cold safety)
-               - Air quality impact on health (breathing, exercise, vulnerable groups)
-               - Humidity effects (dehydration, skin care, comfort)
-               - Wind considerations (wind chill, dust, etc.)
-            
-            3. **Activity Guidance** (2-3 points):
-               - Best times for outdoor activities
-               - Activities to avoid and why
-               - Protective measures needed (clothing, masks, sunscreen, etc.)
-            
-            4. **Weekly Outlook & Preparation** (2-3 sentences):
-               - Key changes expected this week
-               - What to prepare for (weather gear, health precautions)
-               - Best and worst days ahead
-            
-            5. **Vulnerable Groups Alert** (1-2 sentences):
-               - Specific warnings for children, elderly, people with respiratory/heart conditions
-               - When to stay indoors or seek medical attention
-            
-            Make it practical, actionable, and easy to understand for everyday decision-making.
-            Use clear headings and bullet points where helpful.
+            Keep it simple and actionable for non-technical users.
             """
             
             response = model.generate_content(prompt)
             return response.text
         
         except Exception as e:
-            return f"""
-            **Current Conditions in {location_name}:**
-            Temperature: {data['current']['temperature']}°C, Humidity: {data['current']['humidity']}%
-            Air Quality PM2.5: {data['current_air']['pm2_5']} μg/m³
-            
-            **Health & Safety Recommendations:**
-            • Temperature: {'Stay cool and hydrated - risk of heat exhaustion' if data['current']['temperature'] > 30 else 'Dress warmly - risk of hypothermia' if data['current']['temperature'] < 5 else 'Comfortable temperature for outdoor activities'}
-            • Air Quality: {'Limit outdoor activities, wear N95 mask if going out' if data['current_air']['pm2_5'] > 55 else 'Good for outdoor activities' if data['current_air']['pm2_5'] < 35 else 'Sensitive individuals should limit prolonged outdoor activities'}
-            • General: Check the detailed charts below for hourly trends and 7-day forecast.
-            """
+            return f"Current conditions in {location_name}: Temperature is {data['current']['temperature']}°C with {data['current']['humidity']}% humidity. Air quality PM2.5 is at {data['current_air']['pm2_5']} μg/m³. Check the detailed charts below for trends and forecasts."
 
 weather_service = WeatherService()
 
@@ -432,4 +382,4 @@ def search_cities():
         return jsonify([]), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True)

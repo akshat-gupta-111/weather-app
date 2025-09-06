@@ -53,9 +53,8 @@
                         <div id="earth-container" class="globe-container">
                             <div id="earth"></div>
                             <div id="tooltip"></div>
-                            <button id="globeZoomBtn" class="globe-zoom-btn">🔍 Zoom Globe</button>
                         </div>
-                        <p class="help-text">Drag to rotate, click zoom button for full screen selection</p>
+                        <p class="help-text">Drag to rotate, click to select location</p>
                     </div>
                 </div>
             </section>
@@ -160,30 +159,6 @@
             </div>
         </div>
     </main>
-
-    <!-- Globe Modal -->
-    <div id="globeModal" class="globe-modal hidden">
-        <div class="globe-modal-content">
-            <div class="globe-modal-header">
-                <h3>🌍 Select Location on Globe</h3>
-                <button id="closeGlobeModal" class="close-modal-btn">×</button>
-            </div>
-            <div class="globe-modal-body">
-                <div id="earthLarge" class="earth-large"></div>
-                <div id="tooltipLarge" class="tooltip-large"></div>
-                <div class="globe-controls">
-                    <p>Drag to rotate the globe, then click to select a location</p>
-                    <div class="selected-coords">
-                        <span id="selectedCoords">Click on globe to select coordinates</span>
-                    </div>
-                </div>
-            </div>
-            <div class="globe-modal-footer">
-                <button id="confirmLocation" class="btn btn-primary" disabled>Confirm Location</button>
-                <button id="cancelLocation" class="btn btn-secondary">Cancel</button>
-            </div>
-        </div>
-    </div>
 
     <footer class="footer">
         <div class="container">

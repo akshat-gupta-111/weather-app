@@ -134,7 +134,7 @@ class ClimateExplorer {
             wasDragging = true;
             const deltaX = e.clientX - previousMouseX;
             previousMouseX = e.clientX;
-            velocityX = -deltaX * 1.5; // Reversed direction
+            velocityX = -deltaX * 1.5; // Reversed direction for natural rotation
             bgPosX = (((bgPosX - deltaX) % textureWidth) + textureWidth) % textureWidth; // Reversed direction
             earth.style.backgroundPositionX = `-${bgPosX}px`;
         });
@@ -393,13 +393,20 @@ class ClimateExplorer {
                 return {
                     type: 'line',
                     data: {
-                        labels: data.hourly.timestamps.map(ts => new Date(ts).getHours() + ':00'),
+                        labels: data.hourly.timestamps.slice(0, 24).map(ts => {
+                            const date = new Date(ts);
+                            const hours = date.getHours();
+                            const ampm = hours >= 12 ? 'PM' : 'AM';
+                            const displayHours = hours % 12 || 12;
+                            return `${displayHours} ${ampm}`;
+                        }),
                         datasets: [{
                             label: 'Temperature (°C)',
-                            data: data.hourly.temperature,
+                            data: data.hourly.temperature.slice(0, 24),
                             borderColor: '#3f87ea',
                             backgroundColor: 'rgba(63, 135, 234, 0.1)',
-                            tension: 0.4
+                            tension: 0.4,
+                            fill: true
                         }]
                     }
                 };
@@ -408,10 +415,16 @@ class ClimateExplorer {
                 return {
                     type: 'bar',
                     data: {
-                        labels: data.hourly.timestamps.map(ts => new Date(ts).getHours() + ':00'),
+                        labels: data.hourly.timestamps.slice(0, 24).map(ts => {
+                            const date = new Date(ts);
+                            const hours = date.getHours();
+                            const ampm = hours >= 12 ? 'PM' : 'AM';
+                            const displayHours = hours % 12 || 12;
+                            return `${displayHours} ${ampm}`;
+                        }),
                         datasets: [{
                             label: 'Precipitation (mm)',
-                            data: data.hourly.precipitation,
+                            data: data.hourly.precipitation.slice(0, 24),
                             backgroundColor: '#22c55e'
                         }]
                     }
@@ -421,17 +434,23 @@ class ClimateExplorer {
                 return {
                     type: 'line',
                     data: {
-                        labels: data.hourly.timestamps.map(ts => new Date(ts).getHours() + ':00'),
+                        labels: data.hourly.timestamps.slice(0, 24).map(ts => {
+                            const date = new Date(ts);
+                            const hours = date.getHours();
+                            const ampm = hours >= 12 ? 'PM' : 'AM';
+                            const displayHours = hours % 12 || 12;
+                            return `${displayHours} ${ampm}`;
+                        }),
                         datasets: [
                             {
                                 label: 'PM2.5 (μg/m³)',
-                                data: data.hourly.pm2_5,
+                                data: data.hourly.pm2_5.slice(0, 24),
                                 borderColor: '#f59e0b',
                                 backgroundColor: 'rgba(245, 158, 11, 0.1)'
                             },
                             {
                                 label: 'PM10 (μg/m³)',
-                                data: data.hourly.pm10,
+                                data: data.hourly.pm10.slice(0, 24),
                                 borderColor: '#ef4444',
                                 backgroundColor: 'rgba(239, 68, 68, 0.1)'
                             }
@@ -443,19 +462,27 @@ class ClimateExplorer {
                 return {
                     type: 'line',
                     data: {
-                        labels: data.daily.dates.slice(0, 7),
+                        labels: data.daily.dates.slice(0, 7).map(dateStr => {
+                            const date = new Date(dateStr);
+                            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
+                        }),
                         datasets: [
                             {
                                 label: 'Max Temp (°C)',
                                 data: data.daily.temp_max.slice(0, 7),
                                 borderColor: '#ef4444',
-                                backgroundColor: 'rgba(239, 68, 68, 0.1)'
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                tension: 0.4
                             },
                             {
                                 label: 'Min Temp (°C)',
                                 data: data.daily.temp_min.slice(0, 7),
                                 borderColor: '#3f87ea',
-                                backgroundColor: 'rgba(63, 135, 234, 0.1)'
+                                backgroundColor: 'rgba(63, 135, 234, 0.1)',
+                                tension: 0.4
                             }
                         ]
                     }
@@ -465,111 +492,6 @@ class ClimateExplorer {
                 return this.getChartData();
         }
     }
-    // Add this method to the ClimateExplorer class after the existing getChartData method
-
-    ]
-                    }
-                };
-            
-            default:
-                return this.getChartData();
-        }
-    }
-    
-    setupAutoRefresh() {
-            
-            default:
-                return this.getChartData();
-        }
-    }
-
-// Add this new method to create air quality heatmap
-createAirQualityHeatmap(data) {
-    // Get 24-hour data for better visualization
-    const hours = data.hourly.timestamps.slice(0, 24).map(ts => {
-        const date = new Date(ts);
-        return date.getHours();
-    });
-    
-    const pm25Data = data.hourly.pm2_5.slice(0, 24);
-    const pm10Data = data.hourly.pm10.slice(0, 24);
-    
-    // Create background colors based on air quality levels
-    const getAQIColor = (pm25) => {
-        if (pm25 <= 12) return 'rgba(34, 197, 94, 0.8)';  // Good - Green
-        if (pm25 <= 35) return 'rgba(245, 158, 11, 0.8)'; // Moderate - Yellow
-        if (pm25 <= 55) return 'rgba(249, 115, 22, 0.8)'; // Unhealthy for Sensitive - Orange
-        if (pm25 <= 150) return 'rgba(239, 68, 68, 0.8)'; // Unhealthy - Red
-        return 'rgba(147, 51, 234, 0.8)'; // Hazardous - Purple
-    };
-    
-    const backgroundColors = pm25Data.map(pm25 => getAQIColor(pm25));
-    const borderColors = pm25Data.map(pm25 => getAQIColor(pm25).replace('0.8', '1'));
-    
-    return {
-        type: 'bar',
-        data: {
-            labels: hours.map(h => h + ':00'),
-            datasets: [
-                {
-                    label: 'PM2.5 Air Quality Index',
-                    data: pm25Data,
-                    backgroundColor: backgroundColors,
-                    borderColor: borderColors,
-                    borderWidth: 2,
-                    borderRadius: 4
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: { 
-                        color: '#ffffff',
-                        generateLabels: function(chart) {
-                            return [
-                                { text: 'Good (0-12)', fillStyle: 'rgba(34, 197, 94, 0.8)' },
-                                { text: 'Moderate (13-35)', fillStyle: 'rgba(245, 158, 11, 0.8)' },
-                                { text: 'Unhealthy (36-55)', fillStyle: 'rgba(249, 115, 22, 0.8)' },
-                                { text: 'Very Unhealthy (56-150)', fillStyle: 'rgba(239, 68, 68, 0.8)' },
-                                { text: 'Hazardous (150+)', fillStyle: 'rgba(147, 51, 234, 0.8)' }
-                            ];
-                        }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        afterLabel: function(context) {
-                            const pm25 = context.raw;
-                            if (pm25 <= 12) return 'Air Quality: Good';
-                            if (pm25 <= 35) return 'Air Quality: Moderate';
-                            if (pm25 <= 55) return 'Air Quality: Unhealthy for Sensitive Groups';
-                            if (pm25 <= 150) return 'Air Quality: Unhealthy';
-                            return 'Air Quality: Hazardous';
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    ticks: { color: '#a0a6c1' },
-                    grid: { color: '#2d3354' }
-                },
-                y: {
-                    ticks: { color: '#a0a6c1' },
-                    grid: { color: '#2d3354' },
-                    title: {
-                        display: true,
-                        text: 'PM2.5 (μg/m³)',
-                        color: '#ffffff'
-                    }
-                }
-            }
-        }
-    };
-}
     
     setupAutoRefresh() {
         this.refreshInterval = setInterval(() => {
