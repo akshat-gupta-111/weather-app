@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate Data Visual Explorer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">🌍 Climate Explorer</h1>
+            <div class="header-actions">
+                <button id="refreshBtn" class="btn btn-secondary">
+                    <span class="refresh-icon">↻</span> Refresh
+                </button>
+                <button id="exportBtn" class="btn btn-primary">📊 Export</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Location Selection Panel -->
+            <section class="location-panel">
+                <h2>Select Location</h2>
+                <div class="location-methods">
+                    <div class="method-tabs">
+                        <button class="tab-btn active" data-tab="city">🏙️ Search City</button>
+                        <button class="tab-btn" data-tab="map">🗺️ Map</button>
+                        <button class="tab-btn" data-tab="globe">🌍 Globe</button>
+                    </div>
+                    
+                    <!-- City Search -->
+                    <div class="tab-content active" id="city-tab">
+                        <div class="search-container">
+                            <input type="text" id="citySearch" placeholder="Search for a city..." autocomplete="off">
+                            <div id="cityResults" class="search-results"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Map Selection -->
+                    <div class="tab-content" id="map-tab">
+                        <div id="map" class="map-container"></div>
+                        <p class="help-text">Click on the map to select a location</p>
+                    </div>
+                    
+                    <!-- Globe Selection -->
+                    <div class="tab-content" id="globe-tab">
+                        <div id="earth-container" class="globe-container">
+                            <div id="earth"></div>
+                            <div id="tooltip"></div>
+                            <button id="globeZoomBtn" class="globe-zoom-btn">🔍 Zoom Globe</button>
+                        </div>
+                        <p class="help-text">Drag to rotate, click zoom button for full screen selection</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="loading-state hidden">
+                <div class="loading-spinner"></div>
+                <p>Loading climate data...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="error-state hidden">
+                <div class="error-icon">⚠️</div>
+                <h3>Unable to load data</h3>
+                <p id="errorMessage">Please try again or select a different location.</p>
+                <button id="retryBtn" class="btn btn-primary">Try Again</button>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboard" class="dashboard hidden">
+                <!-- Current Conditions -->
+                <section class="current-conditions">
+                    <div class="condition-header">
+                        <h2 id="locationName">Current Conditions</h2>
+                        <span id="lastUpdated" class="timestamp"></span>
+                    </div>
+                    
+                    <div class="current-grid">
+                        <div class="current-card temperature">
+                            <div class="card-icon">🌡️</div>
+                            <div class="card-content">
+                                <span class="card-value" id="currentTemp">--</span>
+                                <span class="card-unit">°C</span>
+                                <span class="card-label">Temperature</span>
+                            </div>
+                        </div>
+                        
+                        <div class="current-card humidity">
+                            <div class="card-icon">💧</div>
+                            <div class="card-content">
+                                <span class="card-value" id="currentHumidity">--</span>
+                                <span class="card-unit">%</span>
+                                <span class="card-label">Humidity</span>
+                            </div>
+                        </div>
+                        
+                        <div class="current-card air-quality">
+                            <div class="card-icon">🌬️</div>
+                            <div class="card-content">
+                                <span class="card-value" id="currentAQI">--</span>
+                                <span class="card-unit">μg/m³</span>
+                                <span class="card-label">PM2.5</span>
+                            </div>
+                        </div>
+                        
+                        <div class="current-card wind">
+                            <div class="card-icon">💨</div>
+                            <div class="card-content">
+                                <span class="card-value" id="currentWind">--</span>
+                                <span class="card-unit">km/h</span>
+                                <span class="card-label">Wind Speed</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Anomaly Alerts -->
+                <section id="anomalySection" class="anomaly-section hidden">
+                    <h3>⚠️ Weather Alerts</h3>
+                    <div id="anomalyList" class="anomaly-list"></div>
+                </section>
+
+                <!-- AI Summary -->
+                <section class="ai-summary">
+                    <h3>🤖 AI Climate Insights</h3>
+                    <div id="aiSummary" class="summary-content">
+                        Select a location to get AI-powered climate insights...
+                    </div>
+                </section>
+
+                <!-- Charts Section -->
+                <section class="charts-section">
+                    <div class="chart-tabs">
+                        <button class="chart-tab-btn active" data-chart="temperature">Temperature</button>
+                        <button class="chart-tab-btn" data-chart="precipitation">Precipitation</button>
+                        <button class="chart-tab-btn" data-chart="air-quality">Air Quality</button>
+                        <button class="chart-tab-btn" data-chart="forecast">7-Day Forecast</button>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="mainChart" class="chart-canvas"></canvas>
+                    </div>
+                </section>
+
+                <!-- Weather Forecast Cards -->
+                <section class="forecast-section">
+                    <h3>7-Day Weather Forecast</h3>
+                    <div id="forecastCards" class="forecast-grid">
+                        <!-- Forecast cards will be generated here -->
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Globe Modal -->
+    <div id="globeModal" class="globe-modal hidden">
+        <div class="globe-modal-content">
+            <div class="globe-modal-header">
+                <h3>🌍 Select Location on Globe</h3>
+                <button id="closeGlobeModal" class="close-modal-btn">×</button>
+            </div>
+            <div class="globe-modal-body">
+                <div id="earthLarge" class="earth-large"></div>
+                <div id="tooltipLarge" class="tooltip-large"></div>
+                <div class="globe-controls">
+                    <p>Drag to rotate the globe, then click to select a location</p>
+                    <div class="selected-coords">
+                        <span id="selectedCoords">Click on globe to select coordinates</span>
+                    </div>
+                </div>
+            </div>
+            <div class="globe-modal-footer">
+                <button id="confirmLocation" class="btn btn-primary" disabled>Confirm Location</button>
+                <button id="cancelLocation" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Climate Data Visual Explorer | Data from Open-Meteo & OpenWeather</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

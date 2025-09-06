@@ -1,0 +1,864 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0b1021;
+    --bg-secondary: #1a1f3a;
+    --bg-tertiary: #252a4a;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a6c1;
+    --accent-blue: #3f87ea;
+    --accent-green: #22c55e;
+    --accent-orange: #f59e0b;
+    --accent-red: #ef4444;
+    --border-color: #2d3354;
+    --shadow: rgba(0, 0, 0, 0.3);
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header */
+.header {
+    background: var(--bg-secondary);
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Buttons */
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--accent-blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: #374151;
+}
+
+.refresh-icon {
+    font-size: 1rem;
+    transition: transform 0.5s ease;
+}
+
+.refresh-icon.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Main Content */
+.main-content {
+    padding: 2rem 0;
+}
+
+/* Location Panel */
+.location-panel {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.location-panel h2 {
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+    font-size: 1.25rem;
+}
+
+.method-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tab-btn {
+    padding: 0.75rem 1.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.tab-btn.active {
+    color: var(--accent-blue);
+    border-bottom-color: var(--accent-blue);
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Search */
+.search-container {
+    position: relative;
+    max-width: 400px;
+}
+
+#citySearch {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+#citySearch:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-top: 0.25rem;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    display: none;
+}
+
+.search-results.show {
+    display: block;
+}
+
+.search-result-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.2s ease;
+}
+
+.search-result-item:hover {
+    background: var(--bg-secondary);
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+/* Map and Globe */
+.map-container, .globe-container {
+    height: 300px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.help-text {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+/* Globe Styles */
+#earth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#earth {
+    width: 250px;
+    height: 250px;
+    background: url('https://planetpixelemporium.com/download/download.php?8081/earthmap4k.jpg');
+    background-size: 500px 250px;
+    border-radius: 50%;
+    position: relative;
+    cursor: grab;
+    box-shadow: 0 0 20px -2px rgba(63, 135, 234, 0.7);
+}
+
+#earth:active {
+    cursor: grabbing;
+}
+
+#earth::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle at 25% 25%,
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(0, 0, 0, 0.6) 90%
+    );
+}
+
+#tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+    z-index: 20;
+}
+
+/* States */
+.loading-state, .error-state {
+    text-align: center;
+    padding: 3rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+.error-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Dashboard */
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Current Conditions */
+.current-conditions {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.condition-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.condition-header h2 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+}
+
+.timestamp {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.current-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.current-card {
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.current-card:hover {
+    transform: translateY(-2px);
+}
+
+.card-icon {
+    font-size: 2rem;
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.card-unit {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: -0.25rem;
+}
+
+.card-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+/* Anomaly Section */
+.anomaly-section {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--accent-orange);
+    border-left: 4px solid var(--accent-orange);
+}
+
+.anomaly-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.anomaly-item {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.anomaly-item.high {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.anomaly-item.medium {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.anomaly-icon {
+    font-size: 1.25rem;
+}
+
+/* AI Summary */
+.ai-summary {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.ai-summary h3 {
+    margin-bottom: 1rem;
+    color: var(--accent-blue);
+}
+
+.summary-content {
+    color: var(--text-secondary);
+    line-height: 1.7;
+    white-space: pre-line;
+}
+
+/* Charts */
+.charts-section {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.chart-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.chart-tab-btn {
+    padding: 0.5rem 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.chart-tab-btn.active {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+.chart-container {
+    height: 400px;
+    position: relative;
+}
+
+.chart-canvas {
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+}
+/* Add this to your existing CSS file after the existing chart styles */
+
+/* Enhanced Chart Container for Air Quality Heatmap */
+.chart-container canvas {
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+}
+
+/* Air Quality Legend Styling */
+.air-quality-legend {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+/* Enhanced AI Summary Styling */
+.summary-content {
+    color: var(--text-secondary);
+    line-height: 1.7;
+    white-space: pre-line;
+    font-size: 0.95rem;
+}
+
+.summary-content strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Mobile responsiveness for air quality chart */
+@media (max-width: 768px) {
+    .air-quality-legend {
+        gap: 0.5rem;
+    }
+    
+    .legend-item {
+        font-size: 0.7rem;
+    }
+}
+
+/* Forecast Section */
+.forecast-section {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.forecast-section h3 {
+    margin-bottom: 1.5rem;
+}
+
+.forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+}
+
+.forecast-card {
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s ease;
+}
+
+.forecast-card:hover {
+    transform: translateY(-2px);
+}
+
+.forecast-date {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.forecast-icon {
+    font-size: 1.5rem;
+    margin: 0.5rem 0;
+}
+
+.forecast-temps {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    margin: 0.5rem 0;
+}
+
+.temp-high {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.temp-low {
+    color: var(--text-secondary);
+}
+
+.forecast-precip {
+    font-size: 0.8rem;
+    color: var(--accent-blue);
+}
+
+/* Footer */
+.footer {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    padding: 1.5rem 0;
+    margin-top: 3rem;
+    text-align: center;
+}
+
+.footer p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .header .container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .current-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .chart-tabs {
+        justify-content: center;
+    }
+    
+    .chart-tab-btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+    
+    .chart-container {
+        height: 300px;
+    }
+    
+    .method-tabs {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    #earth {
+        width: 200px;
+        height: 200px;
+        background-size: 400px 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .current-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .forecast-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .location-panel {
+        padding: 1rem;
+    }
+    
+    .charts-section,
+    .ai-summary,
+    .current-conditions {
+        padding: 1rem;
+    }
+}
+
+/* Globe Zoom Button */
+.globe-zoom-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    padding: 0.5rem 1rem;
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.globe-zoom-btn:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+/* Globe Modal */
+.globe-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.globe-modal-content {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.globe-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.globe-modal-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s ease;
+}
+
+.close-modal-btn:hover {
+    color: var(--text-primary);
+}
+
+.globe-modal-body {
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+}
+
+.earth-large {
+    width: 400px;
+    height: 400px;
+    background: url('https://planetpixelemporium.com/download/download.php?8081/earthmap4k.jpg');
+    background-size: 800px 400px;
+    border-radius: 50%;
+    position: relative;
+    cursor: grab;
+    box-shadow: 0 0 30px -5px rgba(63, 135, 234, 0.8);
+    margin: 0 auto;
+}
+
+.earth-large:active {
+    cursor: grabbing;
+}
+
+.earth-large::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle at 25% 25%,
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(255, 255, 255, 0.1) 40%,
+        rgba(0, 0, 0, 0.6) 90%
+    );
+    pointer-events: none;
+}
+
+.tooltip-large {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+    z-index: 30;
+    border: 1px solid var(--accent-blue);
+}
+
+.globe-controls {
+    margin-top: 1.5rem;
+}
+
+.globe-controls p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.selected-coords {
+    background: var(--bg-tertiary);
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.selected-coords span {
+    color: var(--accent-blue);
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+.globe-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+}
+
+@media (max-width: 768px) {
+    .globe-modal-content {
+        width: 95%;
+        margin: 1rem;
+    }
+    
+    .earth-large {
+        width: 300px;
+        height: 300px;
+        background-size: 600px 300px;
+    }
+    
+    .globe-modal-body {
+        padding: 1rem;
+    }
+}
