@@ -94,32 +94,34 @@ class ClimateExplorer {
         const earth = document.getElementById('earth');
         const tooltip = document.getElementById('tooltip');
         
+        // Define texture and view dimensions
         const earthWidth = 300;
         const earthHeight = 300;
         const textureWidth = 600;
         const textureHeight = 300;
-        
+
         let isDragging = false;
         let wasDragging = false;
         let previousMouseX = 0;
         let bgPosX = 0;
         let velocityX = 0;
         let momentumID;
-        
+
         earth.addEventListener('mousedown', (e) => {
             e.preventDefault();
             isDragging = true;
             wasDragging = false;
             previousMouseX = e.clientX;
-            cancelAnimationFrame(momentumID);
+            this.cancelMomentumTracking();
         });
-        
+
         window.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             wasDragging = true;
             const deltaX = e.clientX - previousMouseX;
             previousMouseX = e.clientX;
             velocityX = deltaX * 1.5;
+            // Use a proper modulo for negative numbers
             bgPosX = (((bgPosX + deltaX) % textureWidth) + textureWidth) % textureWidth;
             earth.style.backgroundPositionX = `-${bgPosX}px`;
         });
@@ -130,44 +132,52 @@ class ClimateExplorer {
                 this.beginMomentumTracking();
             }
         });
-        
+
+        // Improved click logic for better coordinate calculation
         earth.addEventListener('click', (e) => {
-            if (wasDragging) return;
-            
+            if(wasDragging) return;
+
             const rect = earth.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
             
+            // Ignore clicks outside the circle
             const xFromCenter = clickX - (earthWidth / 2);
             const yFromCenter = clickY - (earthHeight / 2);
             if (Math.sqrt(xFromCenter**2 + yFromCenter**2) > (earthWidth / 2)) {
                 return;
             }
-            
-            // ** FIXED COORDINATE CALCULATION **
+
+            // Find the horizontal pixel on the flat map texture
             const mapPixelX = (bgPosX + clickX) % textureWidth;
-            let longitude = (mapPixelX / textureWidth) * 360 - 180;
-            let latitude = 90 - (clickY / textureHeight) * 180;
             
-            // Normalize longitude to -180 to 180 range
-            while (longitude > 180) longitude -= 360;
-            while (longitude < -180) longitude += 360;
+            // Convert pixel coordinates to Latitude and Longitude (for equirectangular map)
+            // Longitude: Ranges from -180 to 180
+            const longitude = (mapPixelX / textureWidth) * 360 - 180;
+            // Latitude: Ranges from 90 to -90
+            const latitude = 90 - (clickY / textureHeight) * 180;
             
             console.log(`Globe click: lat=${latitude.toFixed(2)}, lon=${longitude.toFixed(2)}`);
-            
             this.selectLocationFromCoords(latitude, longitude, e.clientX, e.clientY);
         });
-        
-        this.beginMomentumTracking = () => {
+
+        // Set up momentum tracking methods
+        this.cancelMomentumTracking = () => {
             cancelAnimationFrame(momentumID);
-            momentumID = requestAnimationFrame(() => {
-                velocityX *= 0.95;
-                bgPosX = (((bgPosX + velocityX) % textureWidth) + textureWidth) % textureWidth;
-                earth.style.backgroundPositionX = `-${bgPosX}px`;
-                if (Math.abs(velocityX) > 0.5) {
-                    this.beginMomentumTracking();
-                }
-            });
+        };
+
+        this.beginMomentumTracking = () => {
+            this.cancelMomentumTracking();
+            momentumID = requestAnimationFrame(() => this.momentumLoop());
+        };
+
+        this.momentumLoop = () => {
+            velocityX *= 0.95;
+            bgPosX = (((bgPosX + velocityX) % textureWidth) + textureWidth) % textureWidth;
+            earth.style.backgroundPositionX = `-${bgPosX}px`;
+            if (Math.abs(velocityX) > 0.5) {
+                momentumID = requestAnimationFrame(() => this.momentumLoop());
+            }
         };
     }
     
@@ -188,27 +198,66 @@ class ClimateExplorer {
     
     async selectLocationFromCoords(lat, lon, cursorX = null, cursorY = null) {
         try {
-            // Show loading if needed
+            // Show loading tooltip if coordinates provided
             if (cursorX && cursorY) {
-                document.getElementById('tooltip').textContent = 'Loading...';
-                document.getElementById('tooltip').style.left = `${cursorX + 15}px`;
-                document.getElementById('tooltip').style.top = `${cursorY}px`;
-                document.getElementById('tooltip').style.opacity = '1';
+                this.updateTooltip("Loading...", cursorX, cursorY);
             }
             
-            const response = await fetch(`/api/location-from-coords?lat=${lat}&lon=${lon}`);
-            const location = await response.json();
+            // Try BigDataCloud API for better location names
+            let locationName = "Unknown Location";
+            try {
+                const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+                const data = await response.json();
+                
+                if (data.city) {
+                    locationName = `${data.city}, ${data.countryName}`;
+                } else if (data.principalSubdivision) {
+                    locationName = `${data.principalSubdivision}, ${data.countryName}`;
+                } else if (data.countryName) {
+                    locationName = data.countryName;
+                } else {
+                    locationName = "Ocean";
+                }
+            } catch (error) {
+                console.warn('BigDataCloud API failed, falling back to backend:', error);
+                // Fallback to our backend API
+                try {
+                    const response = await fetch(`/api/location-from-coords?lat=${lat}&lon=${lon}`);
+                    const location = await response.json();
+                    locationName = location.display_name;
+                } catch (backendError) {
+                    console.error('Backend API also failed:', backendError);
+                    locationName = `Location (${lat.toFixed(2)}, ${lon.toFixed(2)})`;
+                }
+            }
             
-            this.selectLocation(lat, lon, location.display_name);
-            
+            // Update tooltip with location name if showing
             if (cursorX && cursorY) {
+                this.updateTooltip(locationName, cursorX, cursorY);
+                setTimeout(() => {
+                    document.getElementById('tooltip').style.opacity = '0';
+                }, 3000);
+            }
+            
+            this.selectLocation(lat, lon, locationName);
+            
+        } catch (error) {
+            console.error('Error getting location:', error);
+            if (cursorX && cursorY) {
+                this.updateTooltip("Could not fetch location", cursorX, cursorY);
                 setTimeout(() => {
                     document.getElementById('tooltip').style.opacity = '0';
                 }, 2000);
             }
-        } catch (error) {
-            console.error('Error getting location:', error);
         }
+    }
+    
+    updateTooltip(text, x, y) {
+        const tooltip = document.getElementById('tooltip');
+        tooltip.textContent = text;
+        tooltip.style.left = `${x + 15}px`;
+        tooltip.style.top = `${y}px`;
+        tooltip.style.opacity = '1';
     }
     
     selectLocation(lat, lon, displayName) {

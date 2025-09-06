@@ -175,6 +175,7 @@ pip install -r requirements.txt
 Create a `.env` file in the root directory:
 ```env
 GEMINI_API_KEY=your_google_gemini_api_key_here
+OPENWEATHER_API_KEY=your_openweather_api_key_here
 FLASK_ENV=development
 ```
 
@@ -287,7 +288,8 @@ The integrated AI assistant provides intelligent weather analysis through:
     }
   ],
   "env": {
-    "GEMINI_API_KEY": "@gemini_api_key"
+    "GEMINI_API_KEY": "@gemini_api_key",
+    "OPENWEATHER_API_KEY": "@openweather_api_key"
   }
 }
 ```
@@ -341,6 +343,9 @@ vercel --prod
 ```bash
 vercel env add GEMINI_API_KEY
 # Enter your Google Gemini API key when prompted
+
+vercel env add OPENWEATHER_API_KEY  
+# Enter your OpenWeather API key when prompted
 ```
 
 ### **Post-Deployment Steps**
@@ -366,6 +371,7 @@ vercel domains add your-domain.com
 
 ### **Environment Variables**
 - `GEMINI_API_KEY`: Google Gemini API key for AI functionality
+- `OPENWEATHER_API_KEY`: OpenWeather API key for location services
 - `FLASK_ENV`: Set to 'production' for deployment
 - `PORT`: Server port (default: 5000)
 

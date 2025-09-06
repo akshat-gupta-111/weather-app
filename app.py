@@ -18,7 +18,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # API Configuration
-OPENWEATHER_API_KEY = "c465f37bb98831b900669cac27146b23"
+OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY', "c465f37bb98831b900669cac27146b23")
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', "AIzaSyBt_HllccdAWtX3gevrpIge42Zh8keG5Y0")
 
 # Configure Gemini AI
